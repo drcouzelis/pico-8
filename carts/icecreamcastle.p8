@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 27
 __lua__
--- icecream castle
+-- ice cream castle
 -- by david couzelis
 
 startx=8*3
