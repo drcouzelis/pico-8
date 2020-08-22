@@ -1,5 +1,5 @@
 pico-8 cartridge // http://www.pico-8.com
-version 27
+version 29
 __lua__
 -- unclegator
 -- by david couzelis
@@ -153,7 +153,7 @@ function update_alligator()
  
  -- alligator ai
 
- --add_physics(alg)
+ add_physics(alg)
  --if solid_area(alg
  --local origx=alg.x
  --local origy=alg.y
