@@ -4,6 +4,8 @@ __lua__
 -- coghosts! coroutine demo
 -- by david couzelis
 
+-- create a ghost sprite to
+-- move around the screen
 function create_ghost(s,x,y,spd)
  local g={} -- the new ghost!
  g.s=s      -- sprite number
@@ -13,10 +15,19 @@ function create_ghost(s,x,y,spd)
  g.dx=0     -- change in x
  g.dy=0     -- change in y
  g.z=0      -- height for jump
- g.cor=cocreate(control_ghost)
+ -- the following is for the
+ -- coroutine controlled ghosts
+ g.cor=cocreate(control_coghost)
+ -- the following are for the
+ -- non-coroutine ghosts
+ g.timer=0    -- movement amout
+ g.jump=false -- is jumping
+ g.update=nil -- control function
  return(g)
 end
 
+-- draw a ghost
+-- (and shadow, if needed)
 function draw_ghost(g)
   -- draw a shadow if needed
   if g.z>0 then
@@ -26,7 +37,16 @@ function draw_ghost(g)
   spr(g.s,g.x,g.y-g.z)
 end
 
-function control_ghost(g)
+-- the following three functions
+-- control a ghost using
+-- coroutines
+--
+--  control_coghost
+--  move_coghost
+--  jump_coghost
+--
+-- first...
+function control_coghost(g)
  -- a little routine to control
  -- a ghost. move right, down,
  -- jump, left, then back up.
@@ -34,27 +54,28 @@ function control_ghost(g)
   -- move right
   g.dx=g.spd
   g.dy=0
-  move_ghost(g)
+  move_coghost(g)
   -- move down
   g.dx=0
   g.dy=g.spd
-  move_ghost(g)
+  move_coghost(g)
   -- jump!
   g.dx=0
   g.dy=0
-  jump_ghost(g)
+  jump_coghost(g)
   -- move left
   g.dx=-g.spd
   g.dy=0
-  move_ghost(g)
+  move_coghost(g)
   -- move up
   g.dx=0
   g.dy=-g.spd
-  move_ghost(g)
+  move_coghost(g)
  end
 end
 
-function move_ghost(g)
+-- ...second...
+function move_coghost(g)
  --move a ghost for 20 frames
  for i=1,20 do
   g.x+=g.dx
@@ -65,7 +86,8 @@ function move_ghost(g)
  end
 end
 
-function jump_ghost(g)
+-- ...third
+function jump_coghost(g)
  g.z+=3
  yield()
  g.z+=2
@@ -81,35 +103,173 @@ function jump_ghost(g)
  yield()
 end
 
-function _init()
- ghosts={}
- add(ghosts,create_ghost(1,20,20,1))
- add(ghosts,create_ghost(2,40,20,.5))
- add(ghosts,create_ghost(3,20,40,2))
- add(ghosts,create_ghost(4,40,40,3))
+-- the following one function
+-- controls a ghost using a
+-- single procedural function
+--
+--  control_noghost_func
+--
+function control_noghost_func(g)
+ if g.jump then
+  -- jumping!
+  if g.timer==0 then g.z=3 end
+  if g.timer==1 then g.z=5 end
+  if g.timer==2 then g.z=6 end
+  if g.timer==3 then g.z=6 end
+  if g.timer==4 then g.z=5 end
+  if g.timer==5 then g.z=3 end
+  if g.timer==6 then g.z=0 end
+  if g.timer==7 then
+   -- done jumping, go left
+   g.dx=-g.spd
+   g.dy=0
+   g.jump=false
+   g.timer=0
+  end
+ end
+ if not g.jump then
+  -- update movement
+  g.x+=g.dx
+  g.y+=g.dy
+  if g.timer==20 then
+   -- time to change directions!
+   if g.dx>0 then
+    -- was right, now down
+    g.dx=0
+    g.dy=g.spd
+   elseif g.dy>0 then
+    -- was down, now jump!
+    g.dx=0
+    g.dy=0
+    g.jump=true
+   elseif g.dx<0 then
+    -- was left, now up
+    g.dx=0
+    g.dy=-g.spd
+   elseif g.dy<0 then
+    g.dx=g.spd
+    g.dy=0
+   end
+   g.timer=0 
+  end
+ end
+ -- keep track of amount of
+ -- movement
+ g.timer+=1
 end
 
+-- the following three functions
+-- control a ghost using a state
+-- machine using functions
+--
+--  control_noghost_state
+--  move_noghost
+--  jump_noghost
+--
+-- first...
+function control_noghost_state(g)
+ g.update(g)
+end
+
+-- ...second...
+function move_noghost(g)
+ -- update movement
+ g.x+=g.dx
+ g.y+=g.dy
+ if g.timer==20 then
+  -- time to change directions!
+  if g.dx>0 then
+   -- was right, now down
+   g.dx=0
+   g.dy=g.spd
+  elseif g.dy>0 then
+   -- was down, now jump!
+   g.dx=0
+   g.dy=0
+   g.update=jump_noghost
+  elseif g.dx<0 then
+   -- was left, now up
+   g.dx=0
+   g.dy=-g.spd
+  elseif g.dy<0 then
+   g.dx=g.spd
+   g.dy=0
+  end
+  g.timer=0 
+ end
+ g.timer+=1
+end
+
+-- ...third
+function jump_noghost(g)
+ -- jumping!
+ if g.timer==0 then g.z=3 end
+ if g.timer==1 then g.z=5 end
+ if g.timer==2 then g.z=6 end
+ if g.timer==3 then g.z=6 end
+ if g.timer==4 then g.z=5 end
+ if g.timer==5 then g.z=3 end
+ if g.timer==6 then
+  -- done jumping, go left
+  g.dx=-g.spd
+  g.dy=0
+  g.z=0
+  g.timer=0
+  g.update=move_noghost
+ else
+  g.timer+=1
+ end
+end
+
+-- pico-8
+-- initialize the game
+function _init()
+ -- coghosts
+ -- controlled by coroutines
+ coghosts={}
+ add(coghosts,create_ghost(1,20,20,1))
+ add(coghosts,create_ghost(2,40,20,.5))
+ add(coghosts,create_ghost(3,20,40,2))
+ add(coghosts,create_ghost(4,40,40,3))
+ -- noghosts
+ -- controlled with a function
+ ng1=create_ghost(5,80,20,1)
+ ng1.dx=ng1.spd
+ -- controlled with states
+ ng2=create_ghost(6,99,20,1)
+ ng2.dx=ng1.spd
+ ng2.update=move_noghost
+end
+
+-- pico-8
+-- update the game
 function _update()
- for g in all(ghosts) do
+ for g in all(coghosts) do
   assert(coresume(g.cor,g))
  end
+ control_noghost_func(ng1)
+ control_noghost_state(ng2)
 end
 
+-- pico-8
+-- draw the game
 function _draw()
  cls(0)
- for g in all(ghosts) do
+ for g in all(coghosts) do
   draw_ghost(g)
  end
+ draw_ghost(ng1)
+ draw_ghost(ng2)
 end
 __gfx__
-00000000007777000099990000eeee0000cccc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000000007775770099599900ee55ee00ccc5cc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-007007007775577799595999eeee5eeeccc55ccc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000770007777577799955999ee555eeecc5c5ccc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000770007777577799599999eeee5eeecc555ccc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-007007007775557799555999ee555eeecccc5ccc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000007777777799999999eeeeeeeecccccccc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000007077770790999909e0eeee0ec0cccc0c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000007777000099990000eeee0000cccc000022220000222200000000000000000000000000000000000000000000000000000000000000000000000000
+0000000007775770099599900ee55ee00ccc5cc00252252002522520000000000000000000000000000000000000000000000000000000000000000000000000
+007007007775577799595999eeee5eeeccc55ccc2255252222552522000000000000000000000000000000000000000000000000000000000000000000000000
+000770007777577799955999ee555eeecc5c5ccc2252552222525525000000000000000000000000000000000000000000000000000000000000000000000000
+000770007777577799599999eeee5eeecc555ccc2252252222522522000000000000000000000000000000000000000000000000000000000000000000000000
+007007007775557799555999ee555eeecccc5ccc2252252522522525000000000000000000000000000000000000000000000000000000000000000000000000
+000000007777777799999999eeeeeeeecccccccc2222222222222222000000000000000000000000000000000000000000000000000000000000000000000000
+000000007077770790999909e0eeee0ec0cccc0c2022220220222202000000000000000000000000000000000000000000000000000000000000000000000000
 __label__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
