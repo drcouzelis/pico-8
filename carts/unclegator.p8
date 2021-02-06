@@ -148,17 +148,42 @@ function any_eaten()
 end
 
 alg_spd=0.5
+
+function control_alligator()
+ --while not game_over
+  --pick a random target
+  --for 4 loops
+   --travel left/right
+   --travel up/down
+   
+ --while not game_over
+ while not game_over do
+  --pick a random target
+  local tgt=flr(rnd(kidn))+1
+  --for 4 loops
+  for i=1,4 do
+   --travel left/right
+   if flr(rnd(1))==0 then
+    alg.dx=-alg_spd
+   else
+    alg.dx=alg_spd
+   end
+   yield()
+   
+   --travel up/down
+   
+  end
+ end
+end
  
 function update_alligator()
  
  -- alligator ai
+ if not costatus(alg.control)=="dead" then
+  assert(coresume(alg.control))
+ end
 
  add_physics(alg)
- --if solid_area(alg
- --local origx=alg.x
- --local origy=alg.y
- 
-
  animate(alg)
 end
 
@@ -185,7 +210,7 @@ function _init()
  alg.w=7
  alg.h=7
  alg.update=update_alligator
- alg.dx=alg_spd
+ alg.control=cocreate(control_alligator)
  
  -- ladder
  ldr=make_actor(10,8*8,8*8)
@@ -223,6 +248,7 @@ function _update()
   kidn-=1
   if kidn<=0 then
    game_win=true
+   game_over=true
   else
    kidi+=1
    if kidi>kidn then kidi=1 end
@@ -247,12 +273,13 @@ function _draw()
  end
  arr:draw()
  --print("kidi "..kidi,0,0,7)
- if game_over then
-  printo("game over!",8*6,8*8)
- end
  if game_win then
   printo("you win!!!",8*6,8*8)
+ elseif game_over then
+  printo("game over!",8*6,8*8)
  end
+ --debugging
+ printo(tostr(alg.dx),0,0)
 end
 -->8
 function printo(s,x,y)
