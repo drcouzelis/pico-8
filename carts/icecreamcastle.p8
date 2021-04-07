@@ -1,5 +1,5 @@
 pico-8 cartridge // http://www.pico-8.com
-version 27
+version 29
 __lua__
 -- ice cream castle
 -- by david couzelis
@@ -7,7 +7,7 @@ __lua__
 startx=8*3
 starty=8*14
 walk=1.5
-jump=-5.2
+jump=-5.1
 gravity=0.5
 max_fall=4
 
@@ -158,6 +158,7 @@ function control_player()
  -- jump
  if (btnp(4) or btnp(5)) and can_jump() then
   sfx(0)
+  pl.y=flr(pl.y)
   pl.dy=jump
  end
 end
