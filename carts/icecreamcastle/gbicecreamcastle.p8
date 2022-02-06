@@ -1,15 +1,22 @@
 pico-8 cartridge // http://www.pico-8.com
-version 29
+version 33
 __lua__
--- ice cream castle
+-- ice cream castle gb
 -- by david couzelis
 
-startx=8*3
-starty=8*14
-walk=1.5
-jump=-5.2
-gravity=0.5
-max_fall=4
+-- should be able to jump
+-- between 5 tiles
+startx=8*12 -- 8*3
+starty=8*9 -- 8*14
+walk=0.75 -- 1.5
+jump=-2.75 -- -5.2
+gravity=0.15234375 -- 0.5
+max_fall=2 -- 4
+
+pl_aspd=12 -- 6
+beam_spd=60 -- 30
+blade_spd=0.5 -- 1
+blade_aspd=4 -- 2
 
 level=1
 tries=1
@@ -158,6 +165,7 @@ function control_player()
  -- jump
  if (btnp(4) or btnp(5)) and can_jump() then
   sfx(0)
+  pl.y=flr(pl.y)
   pl.dy=jump
  end
 end
@@ -170,7 +178,7 @@ end
 
 function create_beam(x,y)
  a=make_actor(6,8*x,8*y)
- a.fspd=30
+ a.fspd=beam_spd
  a.ftim=0
  a.update=update_beam
 end
@@ -200,7 +208,7 @@ function reset_level()
  -- create the player
  pl=make_actor(1,startx,starty)
  pl.frms=2
- pl.aspd=6
+ pl.aspd=pl_aspd
  pl.l=false -- facing left?
  pl.grav=true
  
@@ -209,14 +217,14 @@ function reset_level()
  -- create the spinning blades
  a=make_actor(7,8*10,8*6)
  a.frms=2
- a.aspd=2
- a.dx=1
+ a.aspd=blade_aspd
+ a.dx=blade_spd
  a.update=update_blade
 
  a=make_actor(7,8*8,8*1)
  a.frms=2
- a.aspd=2
- a.dx=1
+ a.aspd=blade_aspd
+ a.dx=blade_spd
  a.update=update_blade
  
  -- create beams
@@ -246,7 +254,7 @@ function reset_level()
  -- create target
  tgt=make_actor(9,8*13,8*4)
  tgt.frms=2
- tgt.aspd=6
+ tgt.aspd=pl_aspd
  
  -- create heart
  hrt=make_actor(11,(8*12)+4,(8*3)-1)
@@ -276,7 +284,7 @@ function game_over()
  gameover=true
 end
 
-function _update()
+function _update60()
  if gameover then
   -- you lose :(
   
@@ -291,7 +299,7 @@ function _update()
   update_actor(pl)
   update_actor(tgt)
   update_actor(hrt)
-
+  
   if btnp(4) or btnp(5) then
    reset_level()
    level+=1
@@ -314,6 +322,13 @@ function _update()
   if actor_collision(pl,tgt) then
    game_win()
   end
+  
+  -- don't animate player
+  -- if jumping
+  if not can_jump() then
+   pl.frm=0
+  end
+
  end
 end
 
