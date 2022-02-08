@@ -77,16 +77,16 @@ function add_physics(a)
  -- try moving
  a.x+=a.dx
  if a.clsn then
- -- find the direction
- local d=1
- if orig>a.x then d=-1 end
- -- if collision, move back
- -- pixel by pixel
- while solid_area(a.x,a.y,a.w,a.h) do
-  a.x-=d
-  a.x=flr(a.x)
-  a.dx=0
- end
+  -- find the direction
+  local d=1
+  if orig>a.x then d=-1 end
+  -- if collision, move back
+  -- pixel by pixel
+  while solid_area(a.x,a.y,a.w,a.h) do
+   a.x-=d
+   a.x=flr(a.x)
+   a.dx=0
+  end
  end
  
  -- possible to move u/d?
@@ -145,12 +145,54 @@ function update_snake(a)
   a.dx*=-1
   a.flip_x=not a.flip_x
  end
- if a.ud and a.y<=0 or a.y+a.h>=128 then
+ if not a.lr and a.y<=0 or a.y+a.h>=128 then
   -- reverse direction
   a.dy*=-1
  end
+ 
+ a.next-=1
+ if a.next==0 then
+  -- spit a fireball
+  fire=make_actor(73,a.x,a.y)
+  fire.update=update_fireball
+
+  -- up down snake
+  if not a.lr then
+   if a.flip_x then
+    fire.dx=-1
+   else
+    fire.dx=1
+   end
+   fire.asize=2
+   fire.clsn=false
+  end
+  
+  -- left right snake
+  if a.lr then
+   if a.y==0 then
+    fire.dy=1
+   else
+    fire.dy=-1
+   end
+   fire.asize=2
+   fire.clsn=false
+  end
+  
+  a.next=100
+ end
   
  animate(a)
+end
+
+function update_fireball(a)
+ add_physics(a)
+ animate(a)
+ 
+ -- is offscreen?
+ if a.x<-a.w or a.x>128 or
+    a.y<-a.h or a.y>128 then
+  del(actors,a)
+ end
 end
 
 function _init()
@@ -170,33 +212,49 @@ function _init()
  enemies={}
  
  -- snakes
+ 
+ -- left snake
  en=make_actor(104,0*8,13*8)
  en.flip_x=false
- en.ud=true
  en.lr=false
  en.dy=0.5
+ en.next=20
  en.asiz=2
  en.aspd=8
  en.clsn=false
  en.update=update_snake
  add(enemies,en)
 
+ -- right snake
  en=make_actor(104,15*8,4*8)
  en.flip_x=true
- en.ud=true
  en.lr=false
  en.dy=-0.7
+ en.next=30
  en.asiz=2
  en.aspd=8
  en.clsn=false
  en.update=update_snake
  add(enemies,en)
 
+ -- bottom snake
  en=make_actor(104,6*8,15*8)
  en.flip_x=false
- en.ud=false
  en.lr=true
  en.dx=0.4
+ en.next=40
+ en.asiz=2
+ en.aspd=8
+ en.clsn=false
+ en.update=update_snake
+ add(enemies,en)
+
+ -- top snake
+ en=make_actor(104,2*8,0*8)
+ en.flip_x=false
+ en.lr=true
+ en.dx=0.7
+ en.next=50
  en.asiz=2
  en.aspd=8
  en.clsn=false
@@ -497,8 +555,8 @@ dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
 dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
 
 __gff__
-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000101010101
+0000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000800000000000000000000000000020000000200000000000000000001010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000101010101
 __map__
 bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 bc0000000000000000000000000000bc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
