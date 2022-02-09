@@ -129,19 +129,49 @@ function animate(a)
 end
 
 function control_player()
+
  local spd=1 --0.5
+
+ -- left
  if btn(0) then
   pl.dx=-spd
   pl.flip_x=true
  end
+
+ -- right
  if btn(1) then
   pl.dx=spd
   pl.flip_x=false
  end
- if not btn(0) and not btn(1) then pl.dx=0 end
+
+ if not btn(0) and not btn(1) then
+  if flr(pl.x)%8==0 then
+   pl.dx=0
+  end
+ end
+
+ -- up
  if btn(2) then pl.dy=-spd end
+ 
+ -- down
  if btn(3) then pl.dy=spd end
- if not btn(2) and not btn(3) then pl.dy=0 end
+ 
+ if not btn(2) and not btn(3) then
+  if flr(pl.y)%8==0 then
+   pl.dy=0
+  end
+ end
+
+end
+
+function get_fireball_timer()
+ if difficulty==1 then
+  return rnd(60)+60
+ elseif difficulty==2 then
+  return rnd(60)+40
+ else
+  return rnd(60)+20
+ end
 end
 
 function update_snake(a)
@@ -158,9 +188,18 @@ function update_snake(a)
  end
  
  a.next-=1
- if a.next==0 then
+ if a.next<=0 and
+    flr(a.x)%8==0 and
+    flr(a.y)%8==0
+ then
   -- spit a fireball
-  fire=make_actor(73,a.x,a.y)
+  if difficulty==1 then
+   fire=make_actor(73,a.x,a.y)
+  elseif difficulty==2 then
+   fire=make_actor(86,a.x,a.y)
+  else
+   fire=make_actor(94,a.x,a.y)
+  end
   fire.update=update_fireball
   add(fireballs,fire)
 
@@ -186,7 +225,7 @@ function update_snake(a)
    fire.clsn=false
   end
   
-  a.next=100
+  a.next=get_fireball_timer()
  end
   
  animate(a)
@@ -204,6 +243,60 @@ function update_fireball(a)
  end
 end
 
+function add_collectables()
+ if difficulty==1 then
+ 
+  -- keys
+  addkey=true
+  for y=0,15 do
+   for x=0,15 do
+    if x==7 and y==8 then
+     --player's location, skip
+    else
+     if addkey and mget(x,y)==0 then
+      key=make_actor(30,x*8,y*8)
+      key.asiz=1
+      key.clsn=false
+      add(keys,key)
+     end
+    end
+    addkey=not addkey
+   end
+   addkey=not addkey
+  end
+
+ elseif difficulty==2 then
+ 
+  -- treasure boxes
+  for y=0,15 do
+   for x=0,15 do
+    if ((y*16)+x)%3==0 and mget(x,y)==0 then
+     key=make_actor(45,x*8,y*8)
+     key.asiz=1
+     key.clsn=false
+     add(keys,key)
+    end
+   end
+  end
+
+ else
+ 
+  -- coins
+  for y=0,15 do
+   for x=0,15 do
+    if mget(x,y)==0 then
+     key=make_actor(48,x*8,y*8)
+     key.asiz=1
+     key.clsn=false
+     add(keys,key)
+    end
+   end
+  end
+
+ end
+ 
+end
+
 function reset_game()
  -- set black to transparent
  -- (this is the default)
@@ -211,6 +304,9 @@ function reset_game()
  
  game_win=false
  game_over=false
+
+ difficulty=1
+ lives=3
 
  for a in all(actors) do
   del(actors,a)
@@ -225,13 +321,14 @@ function reset_game()
  end
  
  -- player
- pl=make_actor(252,(7*8)+2,(8*8)+2)
+ --pl=make_actor(252,(7*8)+2,(8*8)+2)
+ pl=make_actor(252,(7*8),(8*8))
  pl.asiz=4
  pl.aspd=4
- pl.w=4
- pl.h=4
- pl.ofx=-2
- pl.ofy=-2
+ --pl.w=4
+ --pl.h=4
+ --pl.ofx=-2
+ --pl.ofy=-2
  
  -- snakes
  
@@ -240,7 +337,7 @@ function reset_game()
  en.flip_x=false
  en.lr=false
  en.dy=0.5
- en.next=20
+ en.next=get_fireball_timer()
  en.asiz=2
  en.aspd=8
  en.clsn=false
@@ -252,7 +349,7 @@ function reset_game()
  en.flip_x=true
  en.lr=false
  en.dy=-0.7
- en.next=30
+ en.next=get_fireball_timer()
  en.asiz=2
  en.aspd=8
  en.clsn=false
@@ -264,7 +361,7 @@ function reset_game()
  en.flip_x=false
  en.lr=true
  en.dx=0.4
- en.next=40
+ en.next=get_fireball_timer()
  en.asiz=2
  en.aspd=8
  en.clsn=false
@@ -276,7 +373,7 @@ function reset_game()
  en.flip_x=false
  en.lr=true
  en.dx=0.7
- en.next=50
+ en.next=get_fireball_timer()
  en.asiz=2
  en.aspd=8
  en.clsn=false
@@ -284,23 +381,7 @@ function reset_game()
  add(enemies,en)
  
  -- add keys
- addkey=true
- for y=0,15 do
-  for x=0,15 do
-   if x==7 and y==8 then
-    --player's location, skip
-   else
-    if addkey and mget(x,y)==0 then
-     key=make_actor(30,x*8,y*8)
-     key.asiz=1
-     key.clsn=false
-     add(keys,key)
-    end
-   end
-   addkey=not addkey
-  end
-  addkey=not addkey
- end
+ add_collectables()
 
 end
 
@@ -329,7 +410,12 @@ function _update()
     del(keys,a)
     del(actors,a)
     if #keys==0 then
-     game_win=true
+     difficulty+=1
+     if difficulty==4 then
+      game_win=true
+     else
+      add_collectables()
+     end
     end
    end
   end
