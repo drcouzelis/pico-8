@@ -4,7 +4,11 @@ __lua__
 -- toy box jam 2 start cart
 -- by that tom hall and friends
 
+pl=nil
 actors={}
+enemies={}
+fireballs={}
+keys={}
 
 function make_actor(k,x,y)
  local a={
@@ -58,8 +62,11 @@ function solid_area(x,y,w,h)
 end
 
 function point_in(a,x,y)
- return x>=a.x and x<=a.x+a.w and
-  y>=a.y and y<=a.y+a.h
+ return
+  x>=a.x and
+  x<=a.x+a.w and
+  y>=a.y and
+  y<=a.y+a.h
 end
 
 function actor_collision(a1,a2)
@@ -155,6 +162,7 @@ function update_snake(a)
   -- spit a fireball
   fire=make_actor(73,a.x,a.y)
   fire.update=update_fireball
+  add(fireballs,fire)
 
   -- up down snake
   if not a.lr then
@@ -163,7 +171,7 @@ function update_snake(a)
    else
     fire.dx=1
    end
-   fire.asize=2
+   fire.asiz=2
    fire.clsn=false
   end
   
@@ -174,7 +182,7 @@ function update_snake(a)
    else
     fire.dy=-1
    end
-   fire.asize=2
+   fire.asiz=2
    fire.clsn=false
   end
   
@@ -191,14 +199,30 @@ function update_fireball(a)
  -- is offscreen?
  if a.x<-a.w or a.x>128 or
     a.y<-a.h or a.y>128 then
+  del(fireballs,a)
   del(actors,a)
  end
 end
 
-function _init()
+function reset_game()
  -- set black to transparent
  -- (this is the default)
  --palt(0,true)
+ 
+ game_win=false
+ game_over=false
+
+ for a in all(actors) do
+  del(actors,a)
+ end
+ 
+ for a in all(enemies) do
+  del(enemies,a)
+ end
+ 
+ for a in all(fireballs) do
+  del(fireballs,a)
+ end
  
  -- player
  pl=make_actor(252,(7*8)+2,(8*8)+2)
@@ -208,8 +232,6 @@ function _init()
  pl.h=4
  pl.ofx=-2
  pl.ofy=-2
- 
- enemies={}
  
  -- snakes
  
@@ -260,22 +282,64 @@ function _init()
  en.clsn=false
  en.update=update_snake
  add(enemies,en)
+ 
+ -- add keys
+ addkey=true
+ for y=0,15 do
+  for x=0,15 do
+   if x==7 and y==8 then
+    --player's location, skip
+   else
+    if addkey and mget(x,y)==0 then
+     key=make_actor(30,x*8,y*8)
+     key.asiz=1
+     key.clsn=false
+     add(keys,key)
+    end
+   end
+   addkey=not addkey
+  end
+  addkey=not addkey
+ end
 
 end
 
-game_win=false
-game_over=false
+function _init()
+ reset_game()
+end
 
 function _update()
+
  if not game_over and not game_win then
+ 
   control_player()
- else
-  pl.dx=0
-  pl.dy=0
+  
+  for a in all(actors) do
+   a:update()
+  end
+ 
+  for a in all(fireballs) do
+   if actor_collision(a,pl) then
+    game_over=true
+   end
+  end
+  
+  for a in all(keys) do
+   if actor_collision(a,pl) then
+    del(keys,a)
+    del(actors,a)
+    if #keys==0 then
+     game_win=true
+    end
+   end
+  end
+  
  end
  
- for a in all(actors) do
-  a:update()
+ if game_over or game_win then
+  if btn(4) or btn(5) then
+   reset_game()
+  end
  end
 end
 
@@ -292,9 +356,16 @@ function _draw()
  elseif game_over then
   printo("game over!",8*6,8*8)
  end
- --debugging
- --printo(tostr(pl.dx),0,0)
 end
+
+function printo(s,x,y)
+ print(s,x-1,y,0)
+ print(s,x+1,y,0)
+ print(s,x,y-1,0)
+ print(s,x,y+1,0)
+ print(s,x,y,7)
+end
+
 __gfx__
 00000000606660666066606660666066606660666066606616666661feeeeee87bbbbbb30000004000000030000300000b0dd030777777674f9f4fff7999a999
 0000000000000000000000000000000000000000007777006d6666d6e8888882b3333331040000000300000003000030d3000b0d76777777fffff9f49999979a
