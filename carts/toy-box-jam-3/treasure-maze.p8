@@ -187,10 +187,17 @@ function update_snake(a)
   a.dy*=-1
  end
  
+ -- if time to shoot a fireball
+ -- and lined up with a tile
+ -- and not in the borders...
  a.next-=1
  if a.next<=0 and
     flr(a.x)%8==0 and
-    flr(a.y)%8==0
+    flr(a.y)%8==0 and
+    (((a.lr and flr(a.x)>=8) and
+    (a.lr and flr(a.x)<112)) or
+    ((not a.lr and flr(a.y)>=8) and
+    (not a.lr and flr(a.y)<112)))
  then
   -- spit a fireball
   if difficulty==1 then
@@ -244,6 +251,7 @@ function update_fireball(a)
 end
 
 function add_collectables()
+
  if difficulty==1 then
  
   -- keys
@@ -297,27 +305,37 @@ function add_collectables()
  
 end
 
-function reset_game()
+function reset_game(everything)
  -- set black to transparent
  -- (this is the default)
  --palt(0,true)
  
  game_win=false
  game_over=false
+ dead=false
 
- difficulty=1
- lives=3
-
- for a in all(actors) do
-  del(actors,a)
+ if everything then
+  difficulty=1
+  lives=4
  end
- 
+
+ del(actors,pl)
+
  for a in all(enemies) do
   del(enemies,a)
+  del(actors,a)
  end
  
  for a in all(fireballs) do
   del(fireballs,a)
+  del(actors,a)
+ end
+ 
+ if everything then
+  for a in all(keys) do
+   del(keys,a)
+   del(actors,a)
+  end
  end
  
  -- player
@@ -381,17 +399,21 @@ function reset_game()
  add(enemies,en)
  
  -- add keys
- add_collectables()
+ if everything then
+  add_collectables()
+ end
 
 end
 
 function _init()
- reset_game()
+ reset_game(true)
 end
 
 function _update()
 
- if not game_over and not game_win then
+ if not dead and
+    not game_over and
+    not game_win then
  
   control_player()
   
@@ -401,7 +423,11 @@ function _update()
  
   for a in all(fireballs) do
    if actor_collision(a,pl) then
-    game_over=true
+    dead=true
+    lives-=1
+    if lives<=0 then
+     game_over=true
+    end
    end
   end
   
@@ -422,11 +448,18 @@ function _update()
   
  end
  
- if game_over or game_win then
+ if dead and not game_over then
   if btn(4) or btn(5) then
-   reset_game()
+   reset_game(false)
   end
  end
+ 
+ if game_over or game_win then
+  if btn(4) or btn(5) then
+   reset_game(true)
+  end
+ end
+
 end
 
 function _draw()
@@ -441,6 +474,13 @@ function _draw()
   printo("you win!!!",8*6,8*8)
  elseif game_over then
   printo("game over!",8*6,8*8)
+ elseif dead then
+  printo(tostr(lives),8*5,8*8)
+  if lives==1 then
+   printo("try left",8*6,8*8)
+  else
+   printo("tries left",8*6,8*8)
+  end
  end
 end
 
