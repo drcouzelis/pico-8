@@ -8,7 +8,7 @@ __lua__
 -- by that tom hall and friends
 
 pl=nil
-actors={}
+--actors={}
 enemies={}
 fireballs={}
 keys={}
@@ -46,7 +46,7 @@ function make_actor(k,x,y)
     a.flip_y)   -- flip y
   end
  }
- add(actors,a)
+ --add(actors,a)
  return a
 end
 
@@ -169,11 +169,13 @@ end
 
 function get_fireball_timer()
  if difficulty==1 then
-  return rnd(60)+60
+  return rnd(60)+100
  elseif difficulty==2 then
-  return rnd(60)+40
- else
-  return rnd(60)+20
+  return rnd(60)+80
+ elseif difficulty==3 then
+  return rnd(60)+60
+ elseif difficulty==4 then
+  return rnd(60)+30
  end
 end
 
@@ -204,13 +206,19 @@ function update_snake(a)
  then
   -- spit a fireball
   if difficulty==1 then
-   fire=make_actor(73,a.x,a.y)
+   fire=make_actor(73,a.x+2,a.y+2)
   elseif difficulty==2 then
-   fire=make_actor(86,a.x,a.y)
-  else
-   fire=make_actor(94,a.x,a.y)
+   fire=make_actor(86,a.x+2,a.y+2)
+  elseif difficulty==3 then
+   fire=make_actor(94,a.x+2,a.y+2)
+  elseif difficulty==4 then
+   fire=make_actor(77,a.x+2,a.y+2)
   end
   fire.update=update_fireball
+  fire.w=4
+  fire.h=4
+  fire.ofx=-2
+  fire.ofy=-2
   add(fireballs,fire)
   sfx(42)
 
@@ -250,7 +258,7 @@ function update_fireball(a)
  if a.x<-a.w or a.x>128 or
     a.y<-a.h or a.y>128 then
   del(fireballs,a)
-  del(actors,a)
+  --del(actors,a)
  end
 end
 
@@ -291,7 +299,7 @@ function add_collectables()
    end
   end
 
- else
+ elseif difficulty==3 then
  
   -- coins
   for y=0,15 do
@@ -304,6 +312,26 @@ function add_collectables()
     end
    end
   end
+
+ elseif difficulty==4 then
+ 
+  -- door
+  if pl.x<7*8 and pl.y<7*8 then
+   -- bottom right
+   key=make_actor(4,11*8,10*8)
+  elseif pl.x>=7*8 and pl.y<7*8 then
+   -- bottom left
+   key=make_actor(4,4*8,12*8)
+  elseif pl.x<7*8 and pl.y>=7*8 then
+   -- top right
+   key=make_actor(4,11*8,3*8)
+  else
+   -- top left
+   key=make_actor(4,4*8,5*8)
+  end
+  key.asiz=1
+  key.clsn=false
+  add(keys,key)
 
  end
  
@@ -319,26 +347,31 @@ function reset_game(everything)
  dead=false
 
  if everything then
+  sfx(-1)
+  music(-1)
   difficulty=1
+  --difficulty=3
+  --add_collectables()
   lives=4
+  titlescreen=true
  end
 
- del(actors,pl)
+ --del(actors,pl)
 
  for a in all(enemies) do
   del(enemies,a)
-  del(actors,a)
+  --del(actors,a)
  end
  
  for a in all(fireballs) do
   del(fireballs,a)
-  del(actors,a)
+  --del(actors,a)
  end
  
  if everything then
   for a in all(keys) do
    del(keys,a)
-   del(actors,a)
+   --del(actors,a)
   end
  end
  
@@ -359,6 +392,7 @@ function reset_game(everything)
  en.flip_x=false
  en.lr=false
  en.dy=0.5
+ if flr(rnd(2))==0 then en.dy*=-1 end
  en.next=get_fireball_timer()
  en.asiz=2
  en.aspd=8
@@ -371,6 +405,7 @@ function reset_game(everything)
  en.flip_x=true
  en.lr=false
  en.dy=-0.7
+ if flr(rnd(2))==0 then en.dy*=-1 end
  en.next=get_fireball_timer()
  en.asiz=2
  en.aspd=8
@@ -380,9 +415,12 @@ function reset_game(everything)
 
  -- bottom snake
  en=make_actor(104,6*8,15*8)
- en.flip_x=false
  en.lr=true
  en.dx=0.4
+ if flr(rnd(2))==0 then
+  en.dx*=-1
+  en.flip_x=true
+ end
  en.next=get_fireball_timer()
  en.asiz=2
  en.aspd=8
@@ -392,9 +430,12 @@ function reset_game(everything)
 
  -- top snake
  en=make_actor(104,2*8,0*8)
- en.flip_x=false
  en.lr=true
  en.dx=0.7
+ if flr(rnd(2))==0 then
+  en.dx*=-1
+  en.flip_x=true
+ end
  en.next=get_fireball_timer()
  en.asiz=2
  en.aspd=8
@@ -410,24 +451,34 @@ function reset_game(everything)
 end
 
 function _init()
- music(0)
  reset_game(true)
 end
 
 function _update()
 
- if not dead and
+ if not titlescreen and
+    not dead and
     not game_over and
     not game_win then
  
   control_player()
-  
-  for a in all(actors) do
+
+  pl:update()
+    
+  for a in all(enemies) do
    a:update()
   end
  
   for a in all(fireballs) do
-   if actor_collision(a,pl) then
+   a:update()
+  end
+ 
+  for a in all(keys) do
+   a:update()
+  end
+ 
+  for a in all(fireballs) do
+   if actor_collision(pl,a) then
     dead=true
     pl.k=113
     pl.aspr=0
@@ -443,16 +494,18 @@ function _update()
   for a in all(keys) do
    if actor_collision(a,pl) then
     del(keys,a)
-    del(actors,a)
+    --del(actors,a)
     if #keys==0 then
      -- clear all fireballs
      for a in all(fireballs) do
       del(fireballs,a)
-      del(actors,a)
+      --del(actors,a)
      end
      difficulty+=1
-     if difficulty==4 then
+     if difficulty==5 then
       game_win=true
+      music(-1)
+      sfx(34)
      else
       add_collectables()
       sfx(52)
@@ -462,7 +515,7 @@ function _update()
       sfx(41)
      elseif difficulty==2 then
       sfx(61)
-     else
+     elseif difficulty==3 then
       sfx(59)
      end
     end
@@ -472,34 +525,63 @@ function _update()
  end
  
  if dead and not game_over then
-  if btn(4) or btn(5) then
+  if btnp(4) or btnp(5) then
    reset_game(false)
   end
  end
  
  if game_over or game_win then
-  if btn(4) or btn(5) then
+ 
+  if btnp(4) or btnp(5) then
    reset_game(true)
   end
+  
+ elseif game_win then
+ 
+  animate(pl)
+  
+ elseif titlescreen then
+ 
+  if btnp(4) or btnp(5) then
+   titlescreen=false
+   music(0)
+  end
+  
  end
-
+ 
 end
 
 function _draw()
  -- clear screen to black
  cls(0)
-
+ 
  if not game_win then
   -- draw the main game
+
   map()
-  for a in all(actors) do
+
+  pl:draw()
+    
+  for a in all(enemies) do
    a:draw()
   end
+ 
+  for a in all(keys) do
+   a:draw()
+  end
+ 
+  for a in all(fireballs) do
+   a:draw()
+  end
+ 
  end
  
  if game_win then
   -- show the ending screen!
   printo("you win!!!",8*6,8*8)
+  pl:draw()
+  -- draw a heart
+  spr(64,pl.x,pl.y-9)
   
  elseif game_over then
  
@@ -513,6 +595,20 @@ function _draw()
   else
    printo("tries left",8*6,8*8)
   end
+
+ elseif titlescreen then
+
+  rectfill(8*2,8*5,8*14,8*10,5)
+  rectfill(8*2,8*11,8*14,8*14,5)
+   
+  printo("captain neat'o in",8*4,8*6)
+  printo("treasure maze",8*5,8*7)
+  printo("press button to start",8*3,8*9)
+  printo("by david couzelis",8*4,8*12)
+  printo("for toy box jam 3 2022",8*3,8*13)
+  
+  spr(251,8*3,8*7)
+  spr(104,8*12,8*7,1,1,true)
   
  end
 
