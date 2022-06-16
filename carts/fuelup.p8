@@ -71,15 +71,19 @@ end
 
 function _update()
  -- controls
+ -- left
  if btn(0) then
   move_hero(hero_x-speed,hero_y)
  end
+ -- right
  if btn(1) then
   move_hero(hero_x+speed,hero_y)
  end
+ -- up
  if btn(2) then
   move_hero(hero_x,hero_y-speed)
  end
+ -- down
  if btn(3) then
   move_hero(hero_x,hero_y+speed)
  end
